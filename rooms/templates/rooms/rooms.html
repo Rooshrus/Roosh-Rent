@@ -1,0 +1,165 @@
+<!DOCTYPE html>
+<html lang="uk">
+<head>
+  <meta charset="UTF-8">
+  <title>Roosh-Rent | Available Rooms</title>
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
+  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+  {% load static %}
+  <link rel="stylesheet" href="{% static 'rooms/css/roomstyle.css' %}">
+  <style>
+    /* Карусель для популярних */
+    .popular-carousel { margin-bottom:1.5rem; background:#fff; padding:1rem; border-radius:12px; box-shadow:var(--shadow); overflow:hidden;}
+    .popular-track { display:flex; gap:12px; transition:transform .35s ease; }
+    .popular-item { min-width:220px; border-radius:12px; overflow:hidden; cursor:pointer; text-decoration:none; color:inherit; }
+    .popular-item img { width:100%; height:140px; object-fit:cover; display:block; }
+    .popular-meta { padding:.6rem; background:#fafafa; }
+  </style>
+</head>
+<body>
+<div class="background-container"><div class="bg-overlay"></div></div>
+
+<header>
+  <div class="logo"><h1>Roosh-Rent</h1></div>
+  {% include "base_nav.html" %}
+</header>
+
+<main>
+<div class="background-container"></div>
+  <div class="page-header"><h2>Available Rooms</h2></div>
+
+  <form method="get" class="filters minimal-form">
+    <div>
+      <label>Пошук</label>
+      <input type="text" name="q" value="{{ request.GET.q }}">
+    </div>
+    <div>
+      <label>Кімнат</label>
+      <input type="number" name="rooms" min="1" value="{{ request.GET.rooms }}">
+    </div>
+    <div>
+      <label>Мін. ціна</label>
+      <input type="number" step="0.01" name="min_price" value="{{ request.GET.min_price }}">
+    </div>
+    <div>
+      <label>Макс. ціна</label>
+      <input type="number" step="0.01" name="max_price" value="{{ request.GET.max_price }}">
+    </div>
+    <button type="submit">Фільтрувати</button>
+  </form>
+
+  <!-- Popular carousel -->
+  {% if top_rooms %}
+  <div class="popular-carousel" id="popular-carousel">
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:.5rem;">
+      <strong>Найпопулярніші</strong>
+      <small>Клік — перегляд оголошення</small>
+    </div>
+    <div class="popular-track" id="popular-track">
+      {% for r in top_rooms %}
+        <a class="popular-item" href="{% url 'room_detail' r.pk %}" data-id="{{ r.pk }}">
+          <img src="{{ r.image_url }}" alt="">
+          <div class="popular-meta">
+            <div style="font-weight:700;">{{ r.title|default:r.address }}</div>
+            <div class="muted">Ціна: ${{ r.price }} • Бронювань: {{ r.bookings.count }}</div>
+          </div>
+        </a>
+      {% endfor %}
+    </div>
+  </div>
+  {% endif %}
+
+  <div class="container">
+    <div class="rooms grid" id="rooms-list">
+      {% for room in rooms %}
+        <div class="room card" data-id="{{ room.id }}" style="cursor:pointer;">
+          <a href="{% url 'room_detail' room.pk %}" class="card-link">
+            <div class="room-image thumb">
+              <img src="{{ room.image_url }}" alt="Room image">
+            </div>
+            <div class="room-content">
+              <h3 class="truncate">{{ room.title|default:room.address }}</h3>
+              <div class="room-details">
+                <p class="price">Price: <span>${{ room.price }}</span></p>
+                <p class="username">Власник: {{ room.owner.username }}</p>
+              </div>
+            </div>
+          </a>
+        </div>
+      {% empty %}
+        <p>Нічого не знайдено.</p>
+      {% endfor %}
+    </div>
+
+    <div class="map" id="mapid"></div>
+  </div>
+
+  {% if page_obj %}
+  <div class="pagination">
+    {% if page_obj.has_previous %}
+      <a href="?{% if request.GET.q %}q={{ request.GET.q }}&{% endif %}{% if request.GET.rooms %}rooms={{ request.GET.rooms }}&{% endif %}{% if request.GET.min_price %}min_price={{ request.GET.min_price }}&{% endif %}{% if request.GET.max_price %}max_price={{ request.GET.max_price }}&{% endif %}page={{ page_obj.previous_page_number }}">« Попередня</a>
+    {% endif %}
+    <span>Сторінка {{ page_obj.number }} з {{ page_obj.paginator.num_pages }}</span>
+    {% if page_obj.has_next %}
+      <a href="?{% if request.GET.q %}q={{ request.GET.q }}&{% endif %}{% if request.GET.rooms %}rooms={{ request.GET.rooms }}&{% endif %}{% if request.GET.min_price %}min_price={{ request.GET.min_price }}&{% endif %}{% if request.GET.max_price %}max_price={{ request.GET.max_price }}&{% endif %}page={{ page_obj.next_page_number }}">Наступна »</a>
+    {% endif %}
+  </div>
+  {% endif %}
+</div>
+</main>
+
+<footer>
+  <div class="footer-content">
+    <p>Виконав ст. групи: ПП-33 Кузьмяк Р. А.</p>
+    <p>&copy; {% now "Y" %} Roosh-Rent. All rights reserved.</p>
+  </div>
+</footer>
+
+<script>
+  // Ініціалізація карти
+  const mymap = L.map('mapid').setView([49.498077, 23.965648], 7);
+  L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png', { maxZoom: 19 }).addTo(mymap);
+
+  // Збираємо дані з шаблону
+  const roomElems = document.querySelectorAll('.room.card');
+  const markers = {};
+  // Створюємо маркери через data, але нам потрібні координати: запросимо API /roomsapi (той самий endpoint)
+  fetch('/roomsapi')
+    .then(r => r.json())
+    .then(data => {
+      data.forEach(room => {
+        const coords = [room.coordX, room.coordY];
+        const content = `<a href="/rooms/${room.id}/" style="display:block"><img src="${room.image_url || room.picture}" style="width:150px;border-radius:8px;"><br><b>$${room.price}</b></a>`;
+        const pop = L.popup({ closeOnClick: true }).setContent(content);
+        const m = L.marker(coords).addTo(mymap).bindPopup(pop);
+        m.bindTooltip(`$${room.price}`, { permanent: true });
+        markers[room.id] = m;
+      });
+
+      // hover -> flyTo
+      roomElems.forEach(el => {
+        const id = el.dataset.id;
+        if(!id) return;
+        el.addEventListener('mouseover', ()=> {
+          const m = markers[id];
+          if(m){
+            mymap.flyTo(m.getLatLng(), 14);
+            m.openPopup();
+          }
+        });
+        el.addEventListener('mouseout', ()=> {
+          // можна закрити попап або залишити
+        });
+      });
+    });
+
+  // Простий контроль каруселі популярних (якщо є)
+  const popularTrack = document.getElementById('popular-track');
+  if(popularTrack){
+    let pIdx = 0;
+    // дозволяємо свайп або клавіші з прокруткою, але простіше — draggable
+    // (залишаю простим — CSS horizontal scroll працює)
+  }
+</script>
+</body>
+</html>

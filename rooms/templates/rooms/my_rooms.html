@@ -1,0 +1,40 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="uk">
+<head>
+  <meta charset="UTF-8">
+  <title>Мої оголошення</title>
+  <link rel="stylesheet" href="{% static 'rooms/css/roomstyle.css' %}">
+</head>
+<body>
+  <div class="background-container"><div class="bg-overlay"></div></div>
+  <header>
+    <div class="logo"><h1>Roosh-Rent</h1></div>
+    {% include "base_nav.html" %}
+  </header>
+
+  <main>
+    <div class="page-header"><h2>Мої оголошення</h2></div>
+    <div class="container">
+      <div class="rooms">
+        {% for room in rooms %}
+          <div class="room">
+            <a href="{% url 'room_detail' room.pk %}" style="text-decoration:none;color:inherit;">
+              <div class="room-content">
+                <h3>{{ room.address }}</h3>
+                <p class="price">Ціна: <span>${{ room.price }}</span></p>
+              </div>
+            </a>
+            <form method="post" action="{% url 'room_delete' room.pk %}">
+              {% csrf_token %}
+              <button type="submit">Видалити</button>
+            </form>
+          </div>
+        {% empty %}
+          <p>У вас немає оголошень.</p>
+        {% endfor %}
+      </div>
+    </div>
+  </main>
+</body>
+</html>

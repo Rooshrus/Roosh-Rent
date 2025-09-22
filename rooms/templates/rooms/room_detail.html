@@ -1,0 +1,190 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="uk">
+<head>
+  <meta charset="UTF-8">
+  <title>Roosh-Rent | {{ room.title|default:room.address }}</title>
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
+  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+  <link rel="stylesheet" href="{% static 'rooms/css/roomstyle.css' %}">
+  <style>
+    /* Невеликі стилі для слайдера */
+    .image-slider { position:relative; border-radius:12px; overflow:hidden; background:#fff; }
+    .slider-track { display:flex; transition:transform .35s ease; }
+    .slider-slide img { width:100%; height:420px; object-fit:cover; display:block; }
+    .slider-controls { position:absolute; top:50%; transform:translateY(-50%); width:100%; display:flex; justify-content:space-between; padding:0 10px; pointer-events:none; }
+    .slider-btn { pointer-events:all; background:rgba(0,0,0,0.4); color:#fff; border:none; border-radius:999px; width:36px; height:36px; display:flex; align-items:center; justify-content:center; cursor:pointer; }
+    .price-calc { margin-top:1rem; display:flex; gap:1rem; align-items:center; flex-wrap:wrap; }
+    .price-calc .result { font-weight:800; color:var(--accent-color); }
+  </style>
+</head>
+<body>
+<div class="background-container"><div class="bg-overlay"></div></div>
+<header>
+  <div class="logo"><h1>Roosh-Rent</h1></div>
+  {% include "base_nav.html" %}
+</header>
+
+<main>
+  <div class="page-header"><h2>{{ room.title|default:room.address }}</h2></div>
+
+  <div class="container">
+    <div class="rooms" style="width:60%">
+      <div class="room">
+        <div class="room-content">
+          <div class="room-details">
+            <p class="price">Ціна: <span id="js-room-price">${{ room.price }}</span></p>
+            <p class="username">Власник: {{ room.owner.username }}</p>
+            <p>Телефон: {{ room.phone|default:"—" }}</p>
+            <p>Кімнат: {{ room.rooms }} | Санвузлів: {{ room.bathrooms }}{% if room.area %} | Площа: {{ room.area }} м²{% endif %}</p>
+          </div>
+
+          <!-- Image slider -->
+          <div class="image-slider" id="image-slider">
+            <div class="slider-track" id="slider-track">
+              {% if images %}
+                {% for img in images %}
+                  <div class="slider-slide"><img src="{{ img.image.url }}" alt="Image {{ forloop.counter }}"></div>
+                {% endfor %}
+              {% else %}
+                <div class="slider-slide"><img src="{{ room.image_url }}" alt="Room image"></div>
+              {% endif %}
+            </div>
+            <div class="slider-controls">
+              <button class="slider-btn" id="slider-prev">&#10094;</button>
+              <button class="slider-btn" id="slider-next">&#10095;</button>
+            </div>
+          </div>
+
+          <h3 style="margin-top:1rem;">Опис</h3>
+          <p>{{ room.description|linebreaks }}</p>
+
+          <div class="actions-row">
+            {% if user.is_authenticated %}
+              <a class="btn" href="{% url 'cart_add' room.pk %}">Додати до кошика</a>
+            {% endif %}
+            {% if can_delete %}
+              <form method="post" action="{% url 'room_delete' room.pk %}" style="display:inline-block;margin-left:8px;">
+                {% csrf_token %}
+                <button class="btn danger" type="submit">Видалити оголошення</button>
+              </form>
+            {% endif %}
+          </div>
+
+          <hr class="soft">
+
+          <h3>Бронювання</h3>
+          <p class="muted">Недоступні проміжки:</p>
+          <ul class="badges">
+            {% for b in bookings %}
+              <li>{{ b.start_date }} → {{ b.end_date }}</li>
+            {% empty %}
+              <li>Ще немає бронювань</li>
+            {% endfor %}
+          </ul>
+
+          {% if user.is_authenticated %}
+          <form method="post" action="{% url 'book_room' room.pk %}" class="minimal-form" id="booking-form">
+            {% csrf_token %}
+            {{ form.start_date.label_tag }} {{ form.start_date }}
+            {{ form.end_date.label_tag }} {{ form.end_date }}
+            <div class="price-calc">
+              <div>Кількість днів: <span id="js-days">—</span></div>
+              <div>Загальна сума: <span class="result" id="js-total">—</span></div>
+            </div>
+            <button type="submit">Забронювати</button>
+          </form>
+          {% else %}
+            <p><a href="{% url 'login' %}">Увійдіть</a>, щоб забронювати.</p>
+          {% endif %}
+        </div>
+      </div>
+    </div>
+
+    <div id="mapid" class="map"></div>
+  </div>
+</main>
+
+<footer>
+  <div class="footer-content">
+    <p>Виконав ст. групи: ПП-33 Кузьмяк Р. А.</p>
+    <p>&copy; {% now "Y" %} Roosh-Rent. All rights reserved.</p>
+  </div>
+</footer>
+
+<script>
+  // Slider logic
+  (function(){
+    const track = document.getElementById('slider-track');
+    const slides = track.querySelectorAll('.slider-slide');
+    const prev = document.getElementById('slider-prev');
+    const next = document.getElementById('slider-next');
+    let idx = 0;
+    function show(){
+      const w = slides[0].clientWidth || track.clientWidth;
+      track.style.transform = `translateX(${-idx * w}px)`;
+    }
+    window.addEventListener('resize', show);
+    next.addEventListener('click', ()=>{ idx = Math.min(idx+1, slides.length-1); show(); });
+    prev.addEventListener('click', ()=>{ idx = Math.max(idx-1, 0); show(); });
+    // swipe support (touch)
+    let startX = null;
+    track.addEventListener('touchstart', e => startX = e.touches[0].clientX);
+    track.addEventListener('touchend', e => {
+      if(startX === null) return;
+      let dx = startX - e.changedTouches[0].clientX;
+      if(Math.abs(dx) > 40){
+        if(dx > 0) idx = Math.min(idx+1, slides.length-1);
+        else idx = Math.max(idx-1, 0);
+        show();
+      }
+      startX = null;
+    });
+    show();
+  })();
+
+  // Map for detail page
+  (function(){
+    const mymap = L.map('mapid').setView([{{ room.coordX }}, {{ room.coordY }}], 14);
+    L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png', { maxZoom: 19 }).addTo(mymap);
+    L.marker([{{ room.coordX }}, {{ room.coordY }}]).addTo(mymap);
+  })();
+
+  // Price calc
+  (function(){
+    const start = document.getElementById('js-start-date');
+    const end = document.getElementById('js-end-date');
+    const daysEl = document.getElementById('js-days');
+    const totalEl = document.getElementById('js-total');
+    const priceRaw = parseFloat('{{ room.price }}');
+
+    function calc(){
+      if(!start || !end) return;
+      const s = new Date(start.value);
+      const e = new Date(end.value);
+      if(isNaN(s) || isNaN(e)) {
+        daysEl.textContent = '—';
+        totalEl.textContent = '—';
+        return;
+      }
+      // обчислюємо кількість днів включно (як ви просили – приклад 10 днів)
+      const diffTime = e.getTime() - s.getTime();
+      const diffDays = Math.floor(diffTime / (1000 * 60 * 60 * 24)) + 1;
+      if(diffDays <= 0){
+        daysEl.textContent = 'Невірний проміжок';
+        totalEl.textContent = '—';
+        return;
+      }
+      daysEl.textContent = diffDays;
+      const total = (priceRaw * diffDays).toFixed(2);
+      totalEl.textContent = `$${total}`;
+    }
+
+    if(start) start.addEventListener('change', calc);
+    if(end) end.addEventListener('change', calc);
+    // in case defaults exist
+    calc();
+  })();
+</script>
+</body>
+</html>

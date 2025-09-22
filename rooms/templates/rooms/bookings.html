@@ -1,0 +1,43 @@
+{% load static %}
+<!doctype html>
+<html lang="uk">
+<head>
+  <meta charset="utf-8">
+  <title>Мої бронювання</title>
+  <link rel="stylesheet" href="{% static 'rooms/css/roomstyle.css' %}">
+</head>
+<body>
+<div class="background-container"><div class="bg-overlay"></div></div>
+<header>
+  <div class="logo"><h1>Roosh-Rent</h1></div>
+  {% include "base_nav.html" %}
+</header>
+
+<main>
+  <div class="page-header"><h2>Мої бронювання</h2></div>
+  <div class="rooms grid">
+    {% for b in bookings %}
+      <div class="room card">
+        <a href="{% url 'room_detail' b.room.pk %}" class="card-link">
+          <div class="room-image thumb">
+            <img src="{{ b.room.image_url }}" alt="">
+          </div>
+          <div class="room-content">
+            <h3 class="truncate">{{ b.room.title|default:b.room.address }}</h3>
+            <p class="price">З {{ b.start_date }} до {{ b.end_date }}</p>
+          </div>
+        </a>
+      </div>
+    {% empty %}
+      <p>Поки що без бронювань.</p>
+    {% endfor %}
+  </div>
+</main>
+
+<footer>
+  <div class="footer-content">
+    <p>&copy; {% now "Y" %} Roosh-Rent.</p>
+  </div>
+</footer>
+</body>
+</html>

@@ -1,0 +1,25 @@
+{% load static %}
+<!doctype html>
+<html lang="uk">
+<head>
+  <meta charset="utf-8">
+  <title>Увійти</title>
+  <link rel="stylesheet" href="{% static 'rooms/css/roomstyle.css' %}">
+</head>
+<body>
+<div class="background-container"><div class="bg-overlay"></div></div>
+<header><div class="logo"><h1>Roosh-Rent</h1></div></header>
+
+<main class="auth-wrap">
+  <div class="auth-card">
+    <h2>Вхід</h2>
+    <form method="post" class="minimal-form">
+      {% csrf_token %}
+      {{ form.as_p }}
+      <button type="submit">Увійти</button>
+    </form>
+    <p class="muted">Не маєш акаунта? <a href="{% url 'account_signup' %}">Зареєструйся</a></p>
+  </div>
+</main>
+</body>
+</html>
