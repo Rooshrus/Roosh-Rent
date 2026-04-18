@@ -119,13 +119,14 @@ CSRF_TRUSTED_ORIGINS = os.getenv("DJANGO_CSRF_TRUSTED", "").split(",") if os.get
 ACCOUNT_LOGIN_METHODS = {"username", "email"}  # можна логінитись по username або email
 ACCOUNT_SIGNUP_FIELDS = ['username*', 'email*', 'password1*', 'password2*']
 ACCOUNT_EMAIL_REQUIRED = True
-ACCOUNT_EMAIL_VERIFICATION = 'mandatory'  # обов'язкове підтвердження email
+ACCOUNT_EMAIL_VERIFICATION = 'optional'  # підтвердження email необов'язкове для входу
 ACCOUNT_USERNAME_REQUIRED = True
 ACCOUNT_SIGNUP_EMAIL_ENTER_TWICE = False
 ACCOUNT_SIGNUP_PASSWORD_ENTER_TWICE = True
 ACCOUNT_LOGIN_ATTEMPTS_LIMIT = 5
 ACCOUNT_LOGIN_ATTEMPTS_TIMEOUT = 600
 ACCOUNT_LOGIN_ON_EMAIL_CONFIRMATION = True
+ACCOUNT_CONFIRM_EMAIL_ON_GET = True # підтвердження email в один клік
 ACCOUNT_SIGNUP_LOGIN = True
 
 EMAIL_BACKEND = "django.core.mail.backends.console.EmailBackend"

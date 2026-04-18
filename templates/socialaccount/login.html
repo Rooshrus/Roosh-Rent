@@ -1,0 +1,27 @@
+{% load i18n %}
+{% load socialaccount %}
+
+<!DOCTYPE html>
+<html lang="uk">
+<head>
+    <meta charset="UTF-8">
+    <title>Вхід через соцмережу | Roosh-Rent</title>
+    {% load static %}
+    <link rel="stylesheet" href="{% static 'rooms/css/roomstyle.css' %}">
+    <style>
+        .auth-container { max-width: 400px; margin: 5rem auto; background: white; padding: 2rem; border-radius: 12px; box-shadow: 0 4px 20px rgba(0,0,0,0.1); text-align: center; }
+        .btn-auth { background: #007bff; color: white; border: none; padding: 12px; border-radius: 5px; cursor: pointer; width: 100%; font-size: 1rem; margin-top: 1rem; display: block; text-decoration: none; }
+    </style>
+</head>
+<body>
+    <div class="auth-container">
+        <h2>Вхід через {{ provider.name }}</h2>
+        <p>Ви збираєтеся увійти за допомогою свого акаунту {{ provider.name }}. Продовжити?</p>
+
+        <form method="post">
+            {% csrf_token %}
+            <button type="submit" class="btn-auth">Продовжити</button>
+        </form>
+    </div>
+</body>
+</html>

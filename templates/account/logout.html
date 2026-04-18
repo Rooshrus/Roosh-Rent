@@ -1,0 +1,31 @@
+{% load i18n %}
+
+<!DOCTYPE html>
+<html lang="uk">
+<head>
+    <meta charset="UTF-8">
+    <title>Вихід | Roosh-Rent</title>
+    {% load static %}
+    <link rel="stylesheet" href="{% static 'rooms/css/roomstyle.css' %}">
+    <style>
+        .auth-container { max-width: 400px; margin: 5rem auto; background: white; padding: 2rem; border-radius: 12px; box-shadow: 0 4px 20px rgba(0,0,0,0.1); text-align: center; }
+        .btn-auth { background: #dc3545; color: white; border: none; padding: 12px; border-radius: 5px; cursor: pointer; width: 100%; font-size: 1rem; margin-top: 1rem; }
+        .btn-cancel { background: #6c757d; color: white; border: none; padding: 12px; border-radius: 5px; cursor: pointer; width: 100%; font-size: 1rem; margin-top: 0.5rem; display: block; text-decoration: none; }
+    </style>
+</head>
+<body>
+    <div class="auth-container">
+        <h2>Вихід</h2>
+        <p>Ви впевнені, що хочете вийти?</p>
+
+        <form method="POST" action="{% url 'account_logout' %}">
+            {% csrf_token %}
+            {% if redirect_field_value %}
+                <input type="hidden" name="{{ redirect_field_name }}" value="{{ redirect_field_value }}" />
+            {% endif %}
+            <button type="submit" class="btn-auth">Вийти</button>
+            <a href="/" class="btn-cancel">Скасувати</a>
+        </form>
+    </div>
+</body>
+</html>
