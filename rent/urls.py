@@ -26,6 +26,7 @@ urlpatterns = [
     # Bookings
     path('bookings/', views.my_bookings, name='my_bookings'),
     path('bookings/<int:booking_id>/agreement/', views.agreement_form, name='agreement_form'),
+    path('rooms/<int:pk>/message/', views.send_message, name='send_message'),
     path('rooms/<int:pk>/book/', views.book_room, name='book_room'),
 
     # Auth (allauth)

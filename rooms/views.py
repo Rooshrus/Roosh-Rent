@@ -6,9 +6,10 @@ from django.db.models import Q, Count
 from django.core.paginator import Paginator
 from rest_framework.decorators import api_view
 from rest_framework.response import Response
+from django.contrib.auth.models import User
 
-from .models import Room, RoomImage, Booking, CartItem
-from .forms import RoomForm, RegisterForm, BookingForm
+from .models import Room, RoomImage, Booking, CartItem, Message, Review
+from .forms import RoomForm, RegisterForm, BookingForm, AgreementForm, ReviewForm
 from .serializers import RoomSerializer
 
 class Rooms(TemplateView):
@@ -18,7 +19,6 @@ class Rooms(TemplateView):
         context = super().get_context_data(*args, **kwargs)
         qs = Room.objects.filter(is_available=True)
 
-        # фільтри
         q = self.request.GET.get("q")
         min_price = self.request.GET.get("min_price")
         max_price = self.request.GET.get("max_price")
@@ -38,11 +38,10 @@ class Rooms(TemplateView):
                 pass
 
         qs = qs.order_by('-created_at')
-        paginator = Paginator(qs, 10)  # 10 оголошень на сторінці
+        paginator = Paginator(qs, 10)
         page_number = self.request.GET.get("page", 1)
         page_obj = paginator.get_page(page_number)
 
-        # Топ-5 найпопулярніших (підтверджені бронювання)
         top_qs = Room.objects.filter(is_available=True).annotate(
             bookings_count=Count('bookings', filter=Q(bookings__status='confirmed'))
         ).order_by('-bookings_count', '-created_at')[:5]
@@ -56,20 +55,14 @@ class Rooms(TemplateView):
 def add_room(request, *args, **kwargs):
     if request.method == 'POST':
         form = RoomForm(request.POST, request.FILES)
-        files = request.FILES.getlist('pictures')  # очікуємо input name="pictures" multiple
+        files = request.FILES.getlist('pictures')
         if form.is_valid():
             room = form.save(commit=False)
             room.owner = request.user
             room.is_available = True
-            # Якщо ви хочете, щоб головне picture брало перший з uploaded files:
-            if files:
-                # тимчасово не зберюємо picture — спочатку save room
-                pass
             room.save()
-            # зберігаємо перші фото як RoomImage
             for f in files:
                 RoomImage.objects.create(room=room, image=f)
-            # якщо головне поле picture пусте, пишемо перше з images як picture для сумісності (опціонально)
             if not room.picture and room.images.exists():
                 first = room.images.first()
                 room.picture = first.image
@@ -82,16 +75,76 @@ def add_room(request, *args, **kwargs):
         form = RoomForm()
     return render(request, 'rooms/room.html', {"form": form})
 
+@login_required
+def send_message(request, pk):
+    room = get_object_or_404(Room, pk=pk)
+    if request.method == "POST":
+        text = request.POST.get("text")
+        if text:
+            recipient = room.owner if request.user != room.owner else User.objects.get(id=request.POST.get("recipient_id"))
+            Message.objects.create(
+                room=room,
+                sender=request.user,
+                recipient=recipient,
+                text=text
+            )
+            return redirect('room_detail', pk=pk)
+    return redirect('room_detail', pk=pk)
+
 def room_detail(request, pk):
     room = get_object_or_404(Room, pk=pk)
     can_delete = request.user.is_authenticated and request.user == room.owner
     bookings = room.bookings.filter(status="confirmed").order_by("start_date")
     form = BookingForm()
+    # Перевірка на існуючий відгук користувача
+    user_review = None
+    if request.user.is_authenticated:
+        user_review = room.reviews.filter(user=request.user).first()
+    
+    # Обробка відгуку (створення або редагування)
+    if request.method == "POST" and "submit_review" in request.POST:
+        if request.user.is_authenticated:
+            # Якщо відгук вже є — редагуємо його, інакше — створюємо новий
+            r_form = ReviewForm(request.POST, instance=user_review)
+            if r_form.is_valid():
+                review = r_form.save(commit=False)
+                review.room = room
+                review.user = request.user
+                review.save()
+                msg = "Ваш відгук оновлено!" if user_review else "Ваш відгук додано!"
+                messages.success(request, msg)
+                return redirect('room_detail', pk=pk)
+        else:
+            messages.error(request, "Тільки авторизовані користувачі можуть залишати відгуки.")
+
+    # Ініціалізуємо форму даними існуючого відгуку, якщо він є
+    review_form = ReviewForm(instance=user_review)
     images = room.images.all().order_by("uploaded_at")
+
+    # Завантажуємо повідомлення для чату
+    messages_list = []
+    if request.user.is_authenticated:
+        messages_list = Message.objects.filter(
+            room=room
+        ).filter(
+            (Q(sender=request.user) & Q(recipient=room.owner)) |
+            (Q(sender=room.owner) & Q(recipient=request.user))
+        ).order_by('created_at')
+
     return render(
         request,
         "rooms/room_detail.html",
-        {"room": room, "can_delete": can_delete, "bookings": bookings, "form": form, "images": images}
+        {
+            "room": room, 
+            "can_delete": can_delete, 
+            "bookings": bookings, 
+            "form": form, 
+            "review_form": review_form,
+            "user_review": user_review,
+            "images": images,
+            "chat_messages": messages_list,
+            "reviews": room.reviews.all()
+        }
     )
 
 @login_required
@@ -134,12 +187,8 @@ def roomsApi(request, *args, **kwargs):
     return Response(serializer.data)
 
 def index(request):
-    # Замість показу порожньої сторінки — редірект на rooms
     return redirect('rooms')
 
-
-
-# ---------- CART ----------
 @login_required
 def cart_add(request, pk):
     room = get_object_or_404(Room, pk=pk)
@@ -159,7 +208,6 @@ def cart_view(request):
     items = CartItem.objects.filter(user=request.user).select_related("room")
     return render(request, "rooms/cart.html", {"items": items})
 
-# ---------- BOOKINGS ----------
 @login_required
 def book_room(request, pk):
     room = get_object_or_404(Room, pk=pk)
@@ -197,9 +245,7 @@ from reportlab.pdfgen import canvas
 from reportlab.lib.pagesizes import A4
 from reportlab.pdfbase import pdfmetrics
 from reportlab.pdfbase.ttfonts import TTFont
-from .forms import AgreementForm
 
-# Реєстрація шрифту, що підтримує кирилицю
 try:
     pdfmetrics.registerFont(TTFont('DejaVuSans', '/usr/share/fonts/truetype/dejavu/DejaVuSans.ttf'))
     pdfmetrics.registerFont(TTFont('DejaVuSans-Bold', '/usr/share/fonts/truetype/dejavu/DejaVuSans-Bold.ttf'))
@@ -223,19 +269,13 @@ def agreement_form(request, booking_id):
 def generate_agreement_pdf(booking, cleaned_data):
     response = HttpResponse(content_type='application/pdf')
     response['Content-Disposition'] = f'attachment; filename="agreement_{booking.id}.pdf"'
-
     buffer = BytesIO()
     p = canvas.Canvas(buffer, pagesize=A4)
     width, height = A4
-
-    # Заголовок
     p.setFont(FONT_BOLD, 16)
     p.drawCentredString(width / 2.0, height - 50, "ДОГОВІР ОРЕНДИ ЖИТЛА")
-
-    # Вміст
     p.setFont(FONT_NAME, 12)
     y_position = height - 100
-    
     lines = [
         f"Номер бронювання: {booking.id}",
         f"Орендар: {cleaned_data['full_name']}",
@@ -251,14 +291,11 @@ def generate_agreement_pdf(booking, cleaned_data):
         "",
         "____________________ (Власник)"
     ]
-
     for line in lines:
         p.drawString(50, y_position, line)
         y_position -= 20
-
     p.showPage()
     p.save()
-
     pdf = buffer.getvalue()
     buffer.close()
     response.write(pdf)

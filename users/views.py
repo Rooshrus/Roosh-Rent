@@ -1,14 +1,28 @@
 from django.shortcuts import render
 from django.contrib.auth.decorators import login_required
-from rooms.models import Room, Booking
+from rooms.models import Room, Booking, Message
+from django.db.models import Max
 
 @login_required
 def profile(request):
     user_rooms = Room.objects.filter(owner=request.user)
     user_bookings = Booking.objects.filter(user=request.user).select_related('room')
     
+    # Отримуємо унікальні чати (групуємо за кімнатою та співрозмовником)
+    # Це спрощена версія: показуємо всі повідомлення, де користувач є відправником або отримувачем
+    chats = Message.objects.filter(
+        recipient=request.user
+    ).values('room', 'sender').annotate(last_msg=Max('created_at')).order_by('-last_msg')
+    
+    # Додатково чати, де користувач відправляв повідомлення (відповіді)
+    sent_chats = Message.objects.filter(
+        sender=request.user
+    ).values('room', 'recipient').annotate(last_msg=Max('created_at')).order_by('-last_msg')
+
     context = {
         'user_rooms': user_rooms,
         'user_bookings': user_bookings,
+        'chats': chats,
+        'sent_chats': sent_chats,
     }
     return render(request, 'users/profile.html', context)

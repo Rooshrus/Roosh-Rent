@@ -79,6 +79,13 @@
             </div>
             <div class="room-content">
               <h3 class="truncate">{{ room.title|default:room.address }}</h3>
+              <div style="margin-bottom: 5px; color: #ff9a3c; font-size: 0.9rem;">
+                {% if room.average_rating %}
+                  {{ room.average_rating }} ⭐
+                {% else %}
+                  <span style="color: #ccc;">Немає відгуків</span>
+                {% endif %}
+              </div>
               <div class="room-details">
                 <p class="price">Price: <span>${{ room.price }}</span></p>
                 <p class="username">Власник: {{ room.owner.username }}</p>

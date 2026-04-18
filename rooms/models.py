@@ -46,6 +46,11 @@ class Room(models.Model):
         ).exists()
         return not overlap
 
+    @property
+    def average_rating(self):
+        avg = self.reviews.aggregate(models.Avg('rating'))['rating__avg']
+        return round(avg, 1) if avg else 0
+
 class RoomImage(models.Model):
     room = models.ForeignKey(Room, on_delete=models.CASCADE, related_name="images")
     image = models.ImageField(upload_to=room_image_upload_to)
@@ -89,3 +94,31 @@ class CartItem(models.Model):
 
     def __str__(self):
         return f"CartItem({self.user} -> {self.room})"
+
+class Message(models.Model):
+    room = models.ForeignKey(Room, on_delete=models.CASCADE, related_name="messages")
+    sender = models.ForeignKey(User, on_delete=models.CASCADE, related_name="sent_messages")
+    recipient = models.ForeignKey(User, on_delete=models.CASCADE, related_name="received_messages")
+    text = models.TextField()
+    created_at = models.DateTimeField(auto_now_add=True)
+    is_read = models.BooleanField(default=False)
+
+    class Meta:
+        ordering = ["created_at"]
+
+    def __str__(self):
+        return f"Від {self.sender} до {self.recipient} (Кімната {self.room.id})"
+
+class Review(models.Model):
+    room = models.ForeignKey(Room, on_delete=models.CASCADE, related_name="reviews")
+    user = models.ForeignKey(User, on_delete=models.CASCADE, related_name="reviews")
+    rating = models.PositiveSmallIntegerField(default=5) # 1-5 stars
+    comment = models.TextField()
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        ordering = ["-created_at"]
+        unique_together = ("room", "user") # Один користувач - один відгук на кімнату
+
+    def __str__(self):
+        return f"Відгук від {self.user.username} для {self.room.id} (Оцінка: {self.rating})"

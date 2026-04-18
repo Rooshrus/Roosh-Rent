@@ -66,6 +66,25 @@
       <p><strong>Дата реєстрації:</strong> {{ user.date_joined|date:"d.m.Y" }}</p>
     </div>
 
+    <h3 class="section-title">Мої повідомлення</h3>
+    <div class="chat-list">
+      {% for chat in chats %}
+        <div class="list-item">
+          <span>Повідомлення від <strong>{{ chat.sender__username }}</strong> стосовно оголошення #{{ chat.room }}</span>
+          <a href="{% url 'room_detail' chat.room %}">Перейти до чату</a>
+        </div>
+      {% empty %}
+        {% for chat in sent_chats %}
+          <div class="list-item">
+            <span>Ваша переписка з <strong>{{ chat.recipient__username }}</strong> стосовно оголошення #{{ chat.room }}</span>
+            <a href="{% url 'room_detail' chat.room %}">Перейти до чату</a>
+          </div>
+        {% empty %}
+          <p>У вас ще немає активних переписок.</p>
+        {% endfor %}
+      {% endfor %}
+    </div>
+
     <h3 class="section-title">Мої оголошення ({{ user_rooms.count }})</h3>
     <div>
       {% for room in user_rooms %}

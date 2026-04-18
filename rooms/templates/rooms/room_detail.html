@@ -96,13 +96,105 @@
             <button type="submit">Забронювати</button>
           </form>
           {% else %}
-            <p><a href="{% url 'login' %}">Увійдіть</a>, щоб забронювати.</p>
+            <p><a href="{% url 'account_login' %}">Увійдіть</a>, щоб забронювати.</p>
           {% endif %}
+
+          <hr class="soft">
+
+          <!-- Reviews Section -->
+          <div class="reviews-section" style="margin-top: 2rem;">
+            <h3>Відгуки та оцінки ({% if room.average_rating %}{{ room.average_rating }} ⭐{% else %}немає оцінок{% endif %})</h3>
+            
+            <div class="reviews-list" style="margin-top: 1rem; display: flex; flex-direction: column; gap: 15px;">
+              {% for review in reviews %}
+                <div id="review-{{ review.id }}" style="background: #f9f9f9; padding: 15px; border-radius: 10px; border-left: 4px solid var(--accent-color);">
+                  <div style="display: flex; justify-content: space-between; align-items: center;">
+                    <strong>{{ review.user.username }}</strong>
+                    <div style="display: flex; align-items: center; gap: 10px;">
+                      <span style="color: #ff9a3c;">{{ review.rating }} ⭐</span>
+                      {% if review.user == user %}
+                        <button onclick="toggleEditForm()" style="padding: 4px 8px; font-size: 0.75rem; background: #6c757d;">📝 Редагувати</button>
+                      {% endif %}
+                    </div>
+                  </div>
+                  <p style="margin-top: 8px; font-size: 0.95rem;">{{ review.comment }}</p>
+                  <small class="muted">{{ review.created_at|date:"d.m.Y" }}</small>
+                </div>
+              {% empty %}
+                <p class="muted">Поки що немає жодного відгуку. Станьте першим!</p>
+              {% endfor %}
+            </div>
+
+            {% if user.is_authenticated %}
+              <!-- Форма відгуку (прихована, якщо вже є відгук, показується при натисканні Редагувати) -->
+              <div id="review-form-container" style="{% if user_review %}display: none;{% endif %} margin-top: 2rem; background: #fff; padding: 1.5rem; border-radius: 12px; border: 1px solid #eee;">
+                <h4>{% if user_review %}Редагувати відгук{% else %}Залишити відгук{% endif %}</h4>
+                <form method="post" class="minimal-form" style="display: block; margin-top: 1rem;">
+                  {% csrf_token %}
+                  <div style="margin-bottom: 1rem;">
+                    <label>Оцінка:</label>
+                    {{ review_form.rating }}
+                  </div>
+                  <div style="margin-bottom: 1rem;">
+                    <label>Коментар:</label>
+                    {{ review_form.comment }}
+                  </div>
+                  <button type="submit" name="submit_review" style="width: auto;">
+                    {% if user_review %}Зберегти зміни{% else %}Надіслати відгук{% endif %}
+                  </button>
+                  {% if user_review %}
+                    <button type="button" onclick="toggleEditForm()" style="background: #ccc; margin-left: 10px; width: auto;">Скасувати</button>
+                  {% endif %}
+                </form>
+              </div>
+            {% endif %}
+          </div>
         </div>
       </div>
     </div>
 
-    <div id="mapid" class="map"></div>
+    <div class="sidebar" style="width:35%; display: flex; flex-direction: column; gap: 20px;">
+      <div id="mapid" class="map" style="width: 100%; height: 300px; border-radius: 12px; box-shadow: 0 4px 15px rgba(0,0,0,0.1); position: relative; top: auto;"></div>
+      
+      <!-- Chat Section -->
+      <div class="chat-container" style="background: white; padding: 1.5rem; border-radius: 12px; box-shadow: 0 4px 15px rgba(0,0,0,0.1); display: flex; flex-direction: column; height: 450px;">
+        <h3 style="margin-bottom: 1rem; font-size: 1.2rem; border-bottom: 1px solid #eee; padding-bottom: 10px;">💬 Чат з власником</h3>
+        
+        <div id="chat-box" style="flex: 1; overflow-y: auto; padding: 10px; margin-bottom: 15px; background: #fdfdfd; display: flex; flex-direction: column; gap: 12px; border-radius: 8px;">
+          {% for msg in chat_messages %}
+            <div style="padding: 10px 14px; border-radius: 15px; max-width: 85%; font-size: 0.85rem; line-height: 1.4;
+              {% if msg.sender == user %} 
+                background: #007bff; color: white; align-self: flex-end; border-bottom-right-radius: 2px;
+              {% else %} 
+                background: #f0f0f0; color: #333; align-self: flex-start; border-bottom-left-radius: 2px;
+              {% endif %}">
+              <div style="font-weight: bold; font-size: 0.75rem; margin-bottom: 3px; opacity: 0.9;">{{ msg.sender.username }}</div>
+              {{ msg.text }}
+              <div style="font-size: 0.65rem; margin-top: 5px; text-align: right; opacity: 0.7;">{{ msg.created_at|date:"H:i" }}</div>
+            </div>
+          {% empty %}
+            <div style="text-align: center; color: #999; margin-top: 50px; font-style: italic;">
+              Повідомлень поки немає.<br>Напишіть власнику зараз!
+            </div>
+          {% endfor %}
+        </div>
+
+        {% if user.is_authenticated %}
+          <form method="post" action="{% url 'send_message' room.pk %}" style="display: flex; gap: 8px;">
+            {% csrf_token %}
+            <input type="text" name="text" placeholder="Напишіть повідомлення..." required 
+                   style="flex: 1; padding: 10px; border: 1px solid #ddd; border-radius: 20px; outline: none; font-size: 0.9rem;">
+            <button type="submit" style="background: #007bff; color: white; border: none; width: 40px; height: 40px; border-radius: 50%; cursor: pointer; display: flex; align-items: center; justify-content: center; transition: 0.3s;">
+              ➤
+            </button>
+          </form>
+        {% else %}
+          <p style="font-size: 0.85rem; text-align: center; color: #666;">
+            Будь ласка, <a href="{% url 'account_login' %}" style="color: #007bff;">увійдіть</a>, щоб писати повідомлення.
+          </p>
+        {% endif %}
+      </div>
+    </div>
   </div>
 </main>
 
@@ -186,6 +278,16 @@
     // in case defaults exist
     calc();
   })();
+
+  function toggleEditForm() {
+    const formContainer = document.getElementById('review-form-container');
+    if (formContainer.style.display === 'none') {
+      formContainer.style.display = 'block';
+      formContainer.scrollIntoView({ behavior: 'smooth' });
+    } else {
+      formContainer.style.display = 'none';
+    }
+  }
 </script>
 </body>
 </html>
