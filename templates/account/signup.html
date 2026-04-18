@@ -16,6 +16,8 @@
         .form-group label { display: block; margin-bottom: 0.5rem; font-weight: bold; }
         .form-group input { width: 100%; padding: 10px; border: 1px solid #ddd; border-radius: 5px; box-sizing: border-box; }
         .btn-auth { background: #28a745; color: white; border: none; padding: 12px; border-radius: 5px; cursor: pointer; width: 100%; font-size: 1rem; margin-top: 1rem; }
+        .social-auth { margin-top: 2rem; border-top: 1px solid #eee; padding-top: 1rem; text-align: center; }
+        .btn-google { background: white; color: #444; border: 1px solid #ddd; padding: 10px; border-radius: 5px; width: 100%; display: flex; align-items: center; justify-content: center; text-decoration: none; margin-top: 1rem; }
         .auth-links { margin-top: 1rem; text-align: center; font-size: 0.9rem; }
         .auth-links a { color: #007bff; text-decoration: none; }
     </style>
@@ -47,6 +49,14 @@
 
         <div class="auth-links">
             <p>Вже маєте акаунт? <a href="{% url 'account_login' %}">Увійти</a></p>
+        </div>
+
+        <div class="social-auth">
+            <p>Або зареєструйтеся за допомогою</p>
+            <a href="{% provider_login_url 'google' %}" class="btn-google">
+                <img src="https://upload.wikimedia.org/wikipedia/commons/5/53/Google_%22G%22_Logo.svg" width="20" style="margin-right: 10px;">
+                Зареєструватися через Google
+            </a>
         </div>
     </div>
 </body>
