@@ -1,16 +1,19 @@
 <div id="ai-chat-container" style="position: fixed; bottom: 20px; right: 20px; z-index: 1000; font-family: sans-serif;">
-    <button id="ai-chat-toggle" style="background-color: #007bff; color: white; border: none; border-radius: 50%; width: 60px; height: 60px; cursor: pointer; box-shadow: 0 4px 10px rgba(0,0,0,0.2); font-size: 24px;">
-        💬
+    <button id="ai-chat-toggle" style="background-color: #007bff; color: white; border: none; border-radius: 50%; width: 60px; height: 60px; cursor: pointer; box-shadow: 0 4px 15px rgba(0,123,255,0.4); font-size: 30px; display: flex; align-items: center; justify-content: center; transition: transform 0.2s;">
+        🤖
     </button>
 
-    <div id="ai-chat-window" style="display: none; width: 350px; height: 450px; background: white; border-radius: 15px; box-shadow: 0 5px 20px rgba(0,0,0,0.3); flex-direction: column; overflow: hidden; position: absolute; bottom: 80px; right: 0;">
-        <div style="background: #007bff; color: white; padding: 15px; font-weight: bold; display: flex; justify-content: space-between; align-items: center;">
-            <span>Roosh-Rent Помічник</span>
+    <div id="ai-chat-window" style="display: none; width: 350px; height: 450px; background: white; border-radius: 15px; box-shadow: 0 5px 25px rgba(0,0,0,0.2); flex-direction: column; overflow: hidden; position: absolute; bottom: 80px; right: 0; border: 1px solid #eee;">
+        <div style="background: #007bff; color: white; padding: 15px; font-weight: bold; display: flex; justify-content: space-between; align-items: center; shadow: 0 2px 5px rgba(0,0,0,0.1);">
+            <div style="display: flex; align-items: center; gap: 8px;">
+                <span>🤖</span>
+                <span>Roosh-Rent Помічник</span>
+            </div>
             <button id="ai-chat-close" style="background: none; border: none; color: white; cursor: pointer; font-size: 20px;">&times;</button>
         </div>
         
         <div id="ai-chat-messages" style="flex: 1; padding: 15px; overflow-y: auto; background: #f8f9fa; display: flex; flex-direction: column; gap: 10px;">
-            <div style="background: #e9ecef; padding: 8px 12px; border-radius: 10px; align-self: flex-start; max-width: 80%; font-size: 14px;">
+            <div style="background: #e9ecef; padding: 8px 12px; border-radius: 10px; align-self: flex-start; max-width: 80%; font-size: 14px; color: #000; border: 1px solid #dee2e6;">
                 Привіт! Я ваш AI-помічник. Чим можу допомогти?
             </div>
         </div>
@@ -30,8 +33,11 @@
     const chatSend = document.getElementById('ai-chat-send');
     const chatMessages = document.getElementById('ai-chat-messages');
 
+    let messageCount = 0; // Лічильник для унікальних ID
+
     chatToggle.addEventListener('click', () => {
         chatWindow.style.display = chatWindow.style.display === 'none' ? 'flex' : 'none';
+        if (chatWindow.style.display === 'flex') chatInput.focus();
     });
 
     chatClose.addEventListener('click', () => {
@@ -45,6 +51,7 @@
         appendMessage('user', message);
         chatInput.value = '';
 
+        // Створюємо унікальний ID для індикатора завантаження
         const loadingId = appendMessage('ai', 'Зачекайте, думаю...');
 
         try {
@@ -58,22 +65,28 @@
             });
             const data = await response.json();
             
-            document.getElementById(loadingId).remove();
-            appendMessage('ai', data.response || data.error);
+            const loadingEl = document.getElementById(loadingId);
+            if (loadingEl) loadingEl.remove();
+
+            appendMessage('ai', data.response || data.error || 'Сталася невідома помилка');
         } catch (error) {
-            document.getElementById(loadingId).remove();
-            appendMessage('ai', 'Помилка з\'єднання.');
+            const loadingEl = document.getElementById(loadingId);
+            if (loadingEl) loadingEl.remove();
+            appendMessage('ai', 'Помилка з\'єднання з сервером.');
         }
     }
 
     function appendMessage(sender, text) {
-        const id = 'msg-' + Date.now();
+        messageCount++;
+        const id = 'msg-' + Date.now() + '-' + messageCount;
         const msgDiv = document.createElement('div');
         msgDiv.id = id;
         msgDiv.style.padding = '8px 12px';
         msgDiv.style.borderRadius = '10px';
         msgDiv.style.maxWidth = '80%';
         msgDiv.style.fontSize = '14px';
+        msgDiv.style.whiteSpace = 'pre-wrap'; // Щоб бачити переноси рядків
+        msgDiv.style.wordBreak = 'break-word';
         
         if (sender === 'user') {
             msgDiv.style.background = '#007bff';

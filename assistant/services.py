@@ -11,7 +11,7 @@ def list_rooms(min_price=None, max_price=None, rooms=None):
     if min_price: queryset = queryset.filter(price__gte=min_price)
     if max_price: queryset = queryset.filter(price__lte=max_price)
     if rooms: queryset = queryset.filter(rooms=rooms)
-    
+
     return [{
         "id": r.id, "title": r.title, "price": float(r.price),
         "address": r.address, "rooms": r.rooms
@@ -28,13 +28,17 @@ def get_room_details(room_id):
     except Room.DoesNotExist:
         return {"error": "Кімнату не знайдено"}
 
+# Встановлюємо новітню модель Gemini 3.1 Flash Lite Preview
 model = genai.GenerativeModel(
-    model_name='gemini-1.5-flash',
+    model_name='gemini-3.1-flash-lite-preview',
     tools=[list_rooms, get_room_details],
     system_instruction="Ти — AI-помічник Roosh-Rent. Допомагай користувачам шукати житло. Відповідай українською."
 )
 
 def ask_ai(user_query, history=None):
-    chat = model.start_chat(history=history, enable_automatic_function_calling=True)
+    chat = model.start_chat(
+        history=history,
+        enable_automatic_function_calling=True
+    )
     response = chat.send_message(user_query)
     return response.text, chat.history

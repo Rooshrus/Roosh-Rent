@@ -15,4 +15,5 @@ def ai_chat_view(request):
         response_text, _ = ask_ai(user_query, history=history)
         return Response({"response": response_text})
     except Exception as e:
+        print(f"AI Chat Error: {str(e)}") # Це виведе помилку в логи Docker
         return Response({"error": str(e)}, status=500)
