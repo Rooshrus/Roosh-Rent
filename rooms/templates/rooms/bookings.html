@@ -26,6 +26,11 @@
           <div class="room-content">
             <h3 class="truncate">{{ b.room.title|default:b.room.address }}</h3>
             <p class="price">З {{ b.start_date }} до {{ b.end_date }}</p>
+            <div style="margin-top: 10px;">
+              <a href="{% url 'agreement_form' b.id %}" style="background: #007bff; color: white; padding: 5px 10px; border-radius: 4px; text-decoration: none; font-size: 0.9rem;">
+                📄 Сформувати договір
+              </a>
+            </div>
           </div>
         </a>
       </div>

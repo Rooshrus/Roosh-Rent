@@ -191,6 +191,79 @@ def book_room(request, pk):
     messages.success(request, f"Заброньовано: {start} → {end}.")
     return redirect('my_bookings')
 
+from django.http import HttpResponse
+from io import BytesIO
+from reportlab.pdfgen import canvas
+from reportlab.lib.pagesizes import A4
+from reportlab.pdfbase import pdfmetrics
+from reportlab.pdfbase.ttfonts import TTFont
+from .forms import AgreementForm
+
+# Реєстрація шрифту, що підтримує кирилицю
+try:
+    pdfmetrics.registerFont(TTFont('DejaVuSans', '/usr/share/fonts/truetype/dejavu/DejaVuSans.ttf'))
+    pdfmetrics.registerFont(TTFont('DejaVuSans-Bold', '/usr/share/fonts/truetype/dejavu/DejaVuSans-Bold.ttf'))
+    FONT_NAME = "DejaVuSans"
+    FONT_BOLD = "DejaVuSans-Bold"
+except:
+    FONT_NAME = "Helvetica"
+    FONT_BOLD = "Helvetica-Bold"
+
+@login_required
+def agreement_form(request, booking_id):
+    booking = get_object_or_404(Booking, id=booking_id, user=request.user)
+    if request.method == "POST":
+        form = AgreementForm(request.POST)
+        if form.is_valid():
+            return generate_agreement_pdf(booking, form.cleaned_data)
+    else:
+        form = AgreementForm()
+    return render(request, "rooms/agreement_form.html", {"form": form, "booking": booking})
+
+def generate_agreement_pdf(booking, cleaned_data):
+    response = HttpResponse(content_type='application/pdf')
+    response['Content-Disposition'] = f'attachment; filename="agreement_{booking.id}.pdf"'
+
+    buffer = BytesIO()
+    p = canvas.Canvas(buffer, pagesize=A4)
+    width, height = A4
+
+    # Заголовок
+    p.setFont(FONT_BOLD, 16)
+    p.drawCentredString(width / 2.0, height - 50, "ДОГОВІР ОРЕНДИ ЖИТЛА")
+
+    # Вміст
+    p.setFont(FONT_NAME, 12)
+    y_position = height - 100
+    
+    lines = [
+        f"Номер бронювання: {booking.id}",
+        f"Орендар: {cleaned_data['full_name']}",
+        f"Паспортні дані: {cleaned_data['passport_data']}",
+        f"Об'єкт оренди: {booking.room.title or booking.room.address}",
+        f"Адреса: {booking.room.address}",
+        f"Термін: з {booking.start_date} по {booking.end_date}",
+        f"Ціна за добу: ${booking.room.price}",
+        f"Додаткові умови: {cleaned_data['extra_terms'] or 'немає'}",
+        "",
+        "Підписи сторін:",
+        "____________________ (Орендар)",
+        "",
+        "____________________ (Власник)"
+    ]
+
+    for line in lines:
+        p.drawString(50, y_position, line)
+        y_position -= 20
+
+    p.showPage()
+    p.save()
+
+    pdf = buffer.getvalue()
+    buffer.close()
+    response.write(pdf)
+    return response
+
 @login_required
 def my_bookings(request):
     qs = Booking.objects.filter(user=request.user, status="confirmed").select_related("room")

@@ -15,6 +15,8 @@ urlpatterns = [
     path('addroom/', views.add_room, name='add_room'),
     path('myrooms/', views.my_rooms, name='my_rooms'),
     path('roomsapi/', views.roomsApi, name='roomsApi'),
+    path('assistant/', include('assistant.urls')),
+    path('users/', include('users.urls')),
 
     # Cart
     path('cart/', views.cart_view, name='cart'),
@@ -23,6 +25,7 @@ urlpatterns = [
 
     # Bookings
     path('bookings/', views.my_bookings, name='my_bookings'),
+    path('bookings/<int:booking_id>/agreement/', views.agreement_form, name='agreement_form'),
     path('rooms/<int:pk>/book/', views.book_room, name='book_room'),
 
     # Auth (allauth)

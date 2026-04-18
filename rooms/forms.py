@@ -22,8 +22,13 @@ class BookingForm(forms.ModelForm):
             "end_date": forms.DateInput(attrs={"type": "date", "id": "js-end-date"}),
         }
 
+class AgreementForm(forms.Form):
+    full_name = forms.CharField(label="Повне ім'я (ПІБ)", max_length=200)
+    passport_data = forms.CharField(label="Паспортні дані", max_length=300, widget=forms.Textarea(attrs={'rows': 2}))
+    extra_terms = forms.CharField(label="Додаткові умови (опціонально)", required=False, widget=forms.Textarea(attrs={'rows': 2}))
+
 class RegisterForm(UserCreationForm):
     email = forms.EmailField(required=True)
     class Meta:
         model = User
-        fields = ("username", "email", "password1", "password2")
+        fields = ("username", "email")

@@ -32,6 +32,8 @@ INSTALLED_APPS = [
     # твої додатки
     'rest_framework',
     'rooms',
+    'assistant',
+    'users',
 ]
 
 SITE_ID = 1

@@ -1,0 +1,103 @@
+<!DOCTYPE html>
+<html lang="uk">
+<head>
+  <meta charset="UTF-8">
+  <title>Мій профіль | Roosh-Rent</title>
+  {% load static %}
+  <link rel="stylesheet" href="{% static 'rooms/css/roomstyle.css' %}">
+  <style>
+    .profile-container {
+      max-width: 800px;
+      margin: 2rem auto;
+      background: white;
+      padding: 2rem;
+      border-radius: 12px;
+      box-shadow: 0 4px 20px rgba(0,0,0,0.1);
+    }
+    .profile-header {
+      border-bottom: 2px solid #f0f0f0;
+      margin-bottom: 1.5rem;
+      padding-bottom: 1rem;
+    }
+    .profile-info p {
+      margin: 0.5rem 0;
+      font-size: 1.1rem;
+    }
+    .section-title {
+      margin-top: 2rem;
+      margin-bottom: 1rem;
+      color: #333;
+      border-left: 4px solid #007bff;
+      padding-left: 10px;
+    }
+    .list-item {
+      background: #f8f9fa;
+      margin-bottom: 10px;
+      padding: 12px;
+      border-radius: 8px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+    .list-item a {
+      color: #007bff;
+      text-decoration: none;
+      font-weight: bold;
+    }
+  </style>
+</head>
+<body>
+<div class="background-container"><div class="bg-overlay"></div></div>
+
+<header>
+  <div class="logo"><h1>Roosh-Rent</h1></div>
+  {% include "base_nav.html" %}
+</header>
+
+<main>
+  <div class="profile-container">
+    <div class="profile-header">
+      <h2>Профіль користувача: {{ user.username }}</h2>
+    </div>
+    
+    <div class="profile-info">
+      <p><strong>Ім'я користувача:</strong> {{ user.username }}</p>
+      <p><strong>Email:</strong> {{ user.email }}</p>
+      <p><strong>Дата реєстрації:</strong> {{ user.date_joined|date:"d.m.Y" }}</p>
+    </div>
+
+    <h3 class="section-title">Мої оголошення ({{ user_rooms.count }})</h3>
+    <div>
+      {% for room in user_rooms %}
+        <div class="list-item">
+          <span>{{ room.title|default:room.address }}</span>
+          <a href="{% url 'room_detail' room.pk %}">Переглянути</a>
+        </div>
+      {% empty %}
+        <p>У вас ще немає доданих кімнат.</p>
+      {% endfor %}
+    </div>
+
+    <h3 class="section-title">Мої бронювання ({{ user_bookings.count }})</h3>
+    <div>
+      {% for booking in user_bookings %}
+        <div class="list-item">
+          <span>{{ booking.room.title|default:booking.room.address }} ({{ booking.start_date }} - {{ booking.end_date }})</span>
+          <span class="badge {% if booking.status == 'confirmed' %}bg-success{% else %}bg-warning{% endif %}">
+            {{ booking.get_status_display }}
+          </span>
+        </div>
+      {% empty %}
+        <p>Ви ще нічого не забронювали.</p>
+      {% endfor %}
+    </div>
+  </div>
+</main>
+
+<footer>
+  <div class="footer-content">
+    <p>&copy; {% now "Y" %} Roosh-Rent. All rights reserved.</p>
+  </div>
+</footer>
+</body>
+</html>

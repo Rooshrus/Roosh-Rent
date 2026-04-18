@@ -1,0 +1,44 @@
+<!DOCTYPE html>
+<html lang="uk">
+<head>
+  <meta charset="UTF-8">
+  <title>Оформлення договору | Roosh-Rent</title>
+  {% load static %}
+  <link rel="stylesheet" href="{% static 'rooms/css/roomstyle.css' %}">
+  <style>
+    .form-container { max-width: 600px; margin: 3rem auto; background: white; padding: 2rem; border-radius: 12px; box-shadow: 0 4px 20px rgba(0,0,0,0.1); }
+    .form-group { margin-bottom: 1.5rem; }
+    .form-group label { display: block; margin-bottom: 0.5rem; font-weight: bold; }
+    .form-group input, .form-group textarea { width: 100%; padding: 10px; border: 1px solid #ddd; border-radius: 5px; }
+    .btn-submit { background: #28a745; color: white; border: none; padding: 12px 20px; border-radius: 5px; cursor: pointer; font-size: 1.1rem; width: 100%; }
+    .btn-submit:hover { background: #218838; }
+  </style>
+</head>
+<body>
+<header>
+  <div class="logo"><h1>Roosh-Rent</h1></div>
+  {% include "base_nav.html" %}
+</header>
+
+<main>
+  <div class="form-container">
+    <h2>Генерація договору оренди</h2>
+    <p>Для замовлення №{{ booking.id }} ({{ booking.room.address }})</p>
+    <hr>
+    <form method="post">
+      {% csrf_token %}
+      {% for field in form %}
+        <div class="form-group">
+          {{ field.label_tag }}
+          {{ field }}
+          {% if field.errors %}
+            <div style="color: red;">{{ field.errors }}</div>
+          {% endif %}
+        </div>
+      {% endfor %}
+      <button type="submit" class="btn-submit">Згенерувати PDF-договір</button>
+    </form>
+  </div>
+</main>
+</body>
+</html>
