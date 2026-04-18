@@ -16,7 +16,7 @@ WORKDIR /app
 
 # Копіюємо файл залежностей та встановлюємо їх
 COPY requirements.txt .
-RUN pip install --no-cache-dir -r requirements.txt
+RUN pip install --upgrade pip && pip install --no-cache-dir -v -r requirements.txt
 
 # Копіюємо весь проект
 COPY . .

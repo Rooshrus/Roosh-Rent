@@ -1,10 +1,19 @@
-from django.shortcuts import render
+from django.shortcuts import render, redirect
 from django.contrib.auth.decorators import login_required
 from rooms.models import Room, Booking, Message
 from django.db.models import Max
+from django.contrib import messages
 
 @login_required
 def profile(request):
+    if request.method == 'POST' and 'toggle_subscription' in request.POST:
+        profile = request.user.profile
+        profile.is_subscribed = not profile.is_subscribed
+        profile.save()
+        status = "активовано" if profile.is_subscribed else "деактивовано"
+        messages.success(request, f"Підписку на розсилку {status}.")
+        return redirect('profile')
+
     user_rooms = Room.objects.filter(owner=request.user)
     user_bookings = Booking.objects.filter(user=request.user).select_related('room')
     

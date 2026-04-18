@@ -1,0 +1,57 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <style>
+        .button {
+            background-color: #4CAF50;
+            border: none;
+            color: white;
+            padding: 15px 32px;
+            text-align: center;
+            text-decoration: none;
+            display: inline-block;
+            font-size: 16px;
+            margin: 4px 2px;
+            cursor: pointer;
+            border-radius: 8px;
+        }
+        .container {
+            font-family: Arial, sans-serif;
+            padding: 20px;
+            color: #333;
+        }
+        .header {
+            font-size: 24px;
+            font-weight: bold;
+            color: #2c3e50;
+            margin-bottom: 20px;
+        }
+        .content {
+            line-height: 1.6;
+        }
+        .footer {
+            margin-top: 30px;
+            font-size: 12px;
+            color: #7f8c8d;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">З'явилася нова кімната!</div>
+        <div class="content">
+            <p>Привіт!</p>
+            <p>Ми раді повідомити, що на <strong>Roosh Rent</strong> з'явилася нова цікава пропозиція:</p>
+            <h3>{{ room.title }}</h3>
+            <p><strong>Ціна:</strong> {{ room.price }}$</p>
+            <p><strong>Адреса:</strong> {{ room.address }}</p>
+            <p>{{ room.description|truncatewords:30 }}</p>
+            <a href="{{ room_url }}" class="button">Переглянути деталі</a>
+        </div>
+        <div class="footer">
+            <p>Ви отримали цей лист, тому що підписані на оновлення Roosh Rent.</p>
+            <p>Якщо ви хочете відписатися, змініть налаштування у своєму профілі.</p>
+        </div>
+    </div>
+</body>
+</html>

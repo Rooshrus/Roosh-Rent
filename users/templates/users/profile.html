@@ -56,6 +56,14 @@
 
 <main>
   <div class="profile-container">
+    {% if messages %}
+      {% for message in messages %}
+        <div style="padding: 10px; margin-bottom: 20px; border-radius: 8px; background-color: {% if message.tags == 'success' %}#d4edda{% else %}#f8d7da{% endif %}; color: {% if message.tags == 'success' %}#155724{% else %}#721c24{% endif %}; border: 1px solid {% if message.tags == 'success' %}#c3e6cb{% else %}#f5c6cb{% endif %};">
+          {{ message }}
+        </div>
+      {% endfor %}
+    {% endif %}
+
     <div class="profile-header">
       <h2>Профіль користувача: {{ user.username }}</h2>
     </div>
@@ -64,6 +72,21 @@
       <p><strong>Ім'я користувача:</strong> {{ user.username }}</p>
       <p><strong>Email:</strong> {{ user.email }}</p>
       <p><strong>Дата реєстрації:</strong> {{ user.date_joined|date:"d.m.Y" }}</p>
+      <div style="margin-top: 15px; padding: 15px; background: #f0f7ff; border-radius: 8px; border: 1px solid #cce5ff;">
+        <p><strong>Статус підписки:</strong> 
+          {% if user.profile.is_subscribed %}
+            <span style="color: #28a745; font-weight: bold;">Активна</span>
+          {% else %}
+            <span style="color: #dc3545; font-weight: bold;">Вимкнена</span>
+          {% endif %}
+        </p>
+        <form method="post" style="margin-top: 10px;">
+          {% csrf_token %}
+          <button type="submit" name="toggle_subscription" class="btn" style="background-color: {% if user.profile.is_subscribed %}#dc3545{% else %}#28a745{% endif %}; color: white; border: none; padding: 8px 15px; border-radius: 5px; cursor: pointer;">
+            {% if user.profile.is_subscribed %}Відписатися{% else %}Підписатися{% endif %}
+          </button>
+        </form>
+      </div>
     </div>
 
     <h3 class="section-title">Мої повідомлення</h3>
