@@ -1,0 +1,139 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="uk">
+<head>
+  <meta charset="UTF-8">
+  <title>Roosh-Rent | Повідомлення</title>
+  <link rel="stylesheet" href="{% static 'rooms/css/roomstyle.css' %}">
+  <style>
+    .inbox-container {
+      max-width: 800px;
+      margin: 2rem auto;
+      background: white;
+      border-radius: 15px;
+      box-shadow: 0 4px 20px rgba(0,0,0,0.1);
+      overflow: hidden;
+    }
+    .inbox-header {
+      padding: 1.5rem;
+      background: #f8f9fa;
+      border-bottom: 1px solid #eee;
+    }
+    .conversation-list {
+      list-style: none;
+      padding: 0;
+      margin: 0;
+    }
+    .conversation-item {
+      padding: 1.5rem;
+      border-bottom: 1px solid #f0f0f0;
+      display: flex;
+      align-items: center;
+      gap: 15px;
+      transition: background 0.2s;
+      text-decoration: none;
+      color: inherit;
+    }
+    .conversation-item:hover {
+      background: #fcfcfc;
+    }
+    .conversation-item:last-child {
+      border-bottom: none;
+    }
+    .room-thumb {
+      width: 60px;
+      height: 60px;
+      border-radius: 8px;
+      object-fit: cover;
+    }
+    .chat-info {
+      flex: 1;
+    }
+    .chat-top {
+      display: flex;
+      justify-content: space-between;
+      margin-bottom: 5px;
+    }
+    .chat-user {
+      font-weight: bold;
+      color: #333;
+    }
+    .chat-date {
+      font-size: 0.8rem;
+      color: #999;
+    }
+    .chat-room-title {
+      font-size: 0.85rem;
+      color: #007bff;
+      margin-bottom: 4px;
+    }
+    .last-msg-text {
+      font-size: 0.9rem;
+      color: #666;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      max-width: 400px;
+    }
+    .role-badge {
+      font-size: 0.7rem;
+      padding: 2px 6px;
+      border-radius: 10px;
+      margin-left: 8px;
+    }
+    .badge-owner { background: #e3f2fd; color: #1976d2; }
+    .badge-client { background: #f1f8e9; color: #388e3c; }
+  </style>
+</head>
+<body>
+<div class="background-container"><div class="bg-overlay"></div></div>
+<header>
+  <div class="logo"><h1>Roosh-Rent</h1></div>
+  {% include "base_nav.html" %}
+</header>
+
+<main>
+  <div class="page-header"><h2>Мої повідомлення</h2></div>
+
+  <div class="inbox-container">
+    <div class="inbox-header">
+      <h3>Вхідні</h3>
+    </div>
+    <div class="conversation-list">
+      {% for conv in conversations %}
+        <a href="{% if conv.is_owner %}{% url 'chat_detail' conv.room.id conv.other_user.id %}{% else %}{% url 'room_detail' conv.room.id %}{% endif %}" class="conversation-item">
+          <img src="{{ conv.room.image_url }}" alt="Room" class="room-thumb">
+          <div class="chat-info">
+            <div class="chat-top">
+              <div>
+                <span class="chat-user">{{ conv.other_user.username }}</span>
+                {% if conv.is_owner %}
+                  <span class="role-badge badge-owner">Клієнт</span>
+                {% else %}
+                  <span class="role-badge badge-client">Власник</span>
+                {% endif %}
+              </div>
+              <span class="chat-date">{{ conv.last_message.created_at|date:"d.m.Y H:i" }}</span>
+            </div>
+            <div class="chat-room-title">{{ conv.room.title|default:conv.room.address }}</div>
+            <div class="last-msg-text">
+              {% if conv.last_message.sender == user %}Ви: {% endif %}{{ conv.last_message.text }}
+            </div>
+          </div>
+        </a>
+      {% empty %}
+        <div style="padding: 3rem; text-align: center; color: #999;">
+          У вас ще немає жодного повідомлення.
+        </div>
+      {% endfor %}
+    </div>
+  </div>
+</main>
+
+<footer>
+  <div class="footer-content">
+    <p>&copy; {% now "Y" %} Roosh-Rent. All rights reserved.</p>
+  </div>
+</footer>
+</body>
+</html>

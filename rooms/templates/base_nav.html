@@ -3,6 +3,7 @@
     <li><a href="{% url 'rooms' %}" {% if request.path == '/rooms/' or request.path == '/' %}class="active"{% endif %}>Кімнати</a></li>
     <li><a href="{% url 'add_room' %}" {% if request.path == '/addroom/' %}class="active"{% endif %}>Додати кімнату</a></li>
     {% if user.is_authenticated %}
+      <li><a href="{% url 'inbox' %}" {% if request.path == '/inbox/' %}class="active"{% endif %}>Повідомлення</a></li>
       <li><a href="{% url 'my_rooms' %}" {% if request.path == '/myrooms/' %}class="active"{% endif %}>Мої кімнати</a></li>
       <li><a href="{% url 'cart' %}" {% if request.path == '/cart/' %}class="active"{% endif %}>Кошик</a></li>
       <li><a href="{% url 'my_bookings' %}" {% if request.path == '/bookings/' %}class="active"{% endif %}>Мої бронювання</a></li>

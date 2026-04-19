@@ -2,7 +2,7 @@ from django.shortcuts import render, get_object_or_404, redirect
 from django.views.generic.base import TemplateView
 from django.contrib.auth.decorators import login_required
 from django.contrib import messages
-from django.db.models import Q, Count
+from django.db.models import Q, Count, Max
 from django.core.paginator import Paginator
 from rest_framework.decorators import api_view
 from rest_framework.response import Response
@@ -11,6 +11,78 @@ from django.contrib.auth.models import User
 from .models import Room, RoomImage, Booking, CartItem, Message, Review
 from .forms import RoomForm, RegisterForm, BookingForm, AgreementForm, ReviewForm
 from .serializers import RoomSerializer
+
+# ... (other views)
+
+@login_required
+def inbox(request):
+    # Отримуємо всі повідомлення, де користувач є відправником або отримувачем
+    all_messages = Message.objects.filter(
+        Q(sender=request.user) | Q(recipient=request.user)
+    ).select_related('room', 'sender', 'recipient').order_by('-created_at')
+    
+    # Групуємо повідомлення за (кімната, інший користувач)
+    conversations_dict = {}
+    
+    for msg in all_messages:
+        other_user = msg.recipient if msg.sender == request.user else msg.sender
+        key = (msg.room.id, other_user.id)
+        
+        if key not in conversations_dict:
+            conversations_dict[key] = {
+                'room': msg.room,
+                'other_user': other_user,
+                'last_message': msg,
+                'is_owner': msg.room.owner == request.user
+            }
+    
+    conversations = list(conversations_dict.values())
+    return render(request, "inbox.html" if "assistant" in request.path else "rooms/inbox.html", {"conversations": conversations})
+
+@login_required
+def chat_detail(request, room_pk, user_pk):
+    room = get_object_or_404(Room, pk=room_pk)
+    other_user = get_object_or_404(User, pk=user_pk)
+    
+    # Визначаємо, хто є хто
+    is_owner = request.user == room.owner
+    is_client = request.user == other_user
+    
+    # Якщо заходить клієнт, перенаправляємо його на сторінку кімнати (де у нього є чат)
+    if is_client:
+        return redirect('room_detail', pk=room_pk)
+        
+    # Якщо заходить не власник і не той самий клієнт — доступу немає
+    if not is_owner and not is_client:
+        messages.error(request, "Ви не маєте доступу до цього чату.")
+        return redirect('inbox')
+
+    if request.method == "POST":
+        text = request.POST.get("text")
+        if text:
+            Message.objects.create(
+                room=room,
+                sender=request.user,
+                recipient=other_user,
+                text=text
+            )
+            return redirect('chat_detail', room_pk=room_pk, user_pk=user_pk)
+
+    chat_messages = Message.objects.filter(
+        room=room
+    ).filter(
+        (Q(sender=request.user) & Q(recipient=other_user)) |
+        (Q(sender=other_user) & Q(recipient=request.user))
+    ).order_by('created_at')
+
+    # Позначаємо як прочитані
+    chat_messages.filter(recipient=request.user).update(is_read=True)
+
+    return render(request, "rooms/chat_detail.html", {
+        "room": room,
+        "other_user": other_user,
+        "chat_messages": chat_messages
+    })
 
 class Rooms(TemplateView):
     template_name = 'rooms/rooms.html'

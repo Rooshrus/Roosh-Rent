@@ -29,6 +29,10 @@ urlpatterns = [
     path('rooms/<int:pk>/message/', views.send_message, name='send_message'),
     path('rooms/<int:pk>/book/', views.book_room, name='book_room'),
 
+    # Messages/Chat
+    path('inbox/', views.inbox, name='inbox'),
+    path('chat/<int:room_pk>/<int:user_pk>/', views.chat_detail, name='chat_detail'),
+
     # Auth (allauth)
     path('accounts/', include('allauth.urls')),
 
